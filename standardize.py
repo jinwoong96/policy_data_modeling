@@ -89,6 +89,54 @@ class RegionStandardizer:
 
         return [f"{ctpv_nm} 전체"]
 
+    # 지자체복지서비스 ctpvNm/sggNm에는 있지만 zipcd_mapping.csv(시군구코드 코드표)에는
+    # 옛 지명으로 남아 있는 경우를 위한 별칭 - 실측으로 확인된 것만 등록한다.
+    # (2025년 인천 중구 -> 제물포구 개편: 코드표는 아직 "중구"로 되어 있음)
+    _REGION_NAME_ALIASES = {
+        "인천광역시 제물포구": "인천광역시 중구",
+    }
+
+    def to_ontong_zipcd(self, ctpv_nm: str, sgg_nm: str) -> str:
+        """
+        지자체복지서비스의 ctpvNm(시도명) + sggNm(시군구명)을 온통청년 zipCd 형식
+        (시군구코드를 콤마로 나열한 문자열)으로 역변환한다.
+
+        - "시도 시군구" 이름이 zipcd_mapping.csv에 정확히 있으면 그 코드 하나.
+        - 없으면(예: "경기도 수원시"처럼 시가 구 단위로 더 세분화된 경우) 그 이름으로
+          시작하는 모든 시군구코드를 모아서 반환(예: 수원시 장안구/권선구/... 전부).
+        - 알려진 개명 사례는 별칭 테이블로 보정한다.
+        - sggNm이 비어 있으면(광역 단위 정책) 그 시도에 속한 모든 시군구코드를 반환한다.
+        - 어느 쪽으로도 매칭이 안 되면 빈 문자열(= 확인 불가, 코드를 지어내지 않음).
+        """
+        ctpv_nm = (ctpv_nm or "").strip()
+        sgg_nm = (sgg_nm or "").strip()
+        if not ctpv_nm:
+            return ""
+
+        if not sgg_nm:
+            codes = [code for code, name in self.zip_mapping.items() if name.split(" ")[0] == ctpv_nm]
+            return ",".join(sorted(codes))
+
+        full_name = f"{ctpv_nm} {sgg_nm}"
+        full_name = self._REGION_NAME_ALIASES.get(full_name, full_name)
+
+        name_to_codes: Dict[str, List[str]] = {}
+        for code, name in self.zip_mapping.items():
+            name_to_codes.setdefault(name, []).append(code)
+
+        if full_name in name_to_codes:
+            return ",".join(sorted(name_to_codes[full_name]))
+
+        # 정확히 일치하는 이름이 없으면(대도시가 구 단위로 더 쪼개진 경우) 접두어로 모은다.
+        prefix_codes = [
+            code for name, codes in name_to_codes.items() if name.startswith(full_name)
+            for code in codes
+        ]
+        if prefix_codes:
+            return ",".join(sorted(prefix_codes))
+
+        return ""
+
 
 # ---------------------------------------------------------------------------
 # 날짜 / 기간 표준화

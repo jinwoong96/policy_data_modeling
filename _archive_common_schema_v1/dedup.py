@@ -1,18 +1,15 @@
 ### 7) 중복 탐지 - 지역이 겹치고 제목의 핵심 단어가 비슷한 정책을 "중복 의심" 후보로 묶는다.
 # dedup.py
 #
-# 온통청년과 지자체복지서비스는 plcyNo 체계가 서로 다른 값 공간(온통청년 자체 번호 vs
-# servId)이라 키만으로는 중복을 못 잡는다. 대신 (1) 지역이 겹치고 (2) 제목이 비슷하면
-# 같은 정책이 두 시스템에 각각 등록돼 있을 가능성이 높다고 보고 후보로 묶는다.
+# 온통청년과 지자체복지서비스는 ID 체계가 완전히 달라서(plcyNo vs servId) 키로는
+# 중복을 못 잡는다. 대신 (1) 지역이 겹치고 (2) 제목이 비슷하면 같은 정책이 두
+# 시스템에 각각 등록돼 있을 가능성이 높다고 보고 후보로 묶는다.
 #
 # 제목 유사도는 문자 단위(difflib)가 아니라 단어(토큰) 단위 Jaccard 유사도를 쓴다.
 # 한국 정책명은 "청년", "지원사업", "운영"처럼 흔한 단어를 공유하는 경우가 매우 많아서,
-# 문자 단위 유사도는 서로 다른 정책도 유사도가 높게 나오는 오탐이 많았다(공통스키마
-# 버전에서 실측 확인). 흔한 단어를 제외한 단어 집합의 Jaccard 유사도가 훨씬 정확했다.
-#
-# 지역 겹침은 zipCd(시군구코드 콤마 목록)의 앞 2자리(행정표준코드상 시도 구분)로 판단한다.
-# 한 레코드가 아주 많은 시도의 코드를 갖고 있으면(대략 15개 시도 이상) "전국"급으로 보고
-# 항상 겹치는 것으로 처리한다.
+# 문자 단위 유사도는 서로 다른 정책도 유사도가 높게 나오는 오탐이 많았다
+# (실측 확인: "[6월 마감]...자격증 취득지원 사업" vs "...청년도전지원사업"이 문자 단위로는
+#  1.0이 나오는 등). 흔한 단어를 제외한 단어 집합의 Jaccard 유사도가 훨씬 정확했다.
 #
 # 절대 자동으로 지우지 않는다 - 중복 "의심" 후보만 별도 파일에 모아서
 # 사람이 검토하게 한다 (오탐이 섞여 있을 수 있음).
@@ -22,7 +19,6 @@ from typing import Any, Dict, List
 
 
 TITLE_SIMILARITY_THRESHOLD = 0.34
-NATIONWIDE_PROVINCE_COUNT = 15  # 이 개수 이상의 시도 코드를 가지면 "전국"급으로 취급
 
 _BRACKET_PAT = re.compile(r"[\[\(【].*?[\]\)】]")
 _NON_WORD_PAT = re.compile(r"[^\w가-힣\s]")
@@ -63,17 +59,19 @@ def title_similarity(title_a: str, title_b: str) -> float:
     return len(intersection) / len(union)
 
 
-def _provinces_of(zip_cd: str) -> set:
-    codes = [c.strip() for c in (zip_cd or "").split(",") if c.strip()]
-    prefixes = {c[:2] for c in codes if len(c) >= 2}
-    if len(prefixes) >= NATIONWIDE_PROVINCE_COUNT:
-        return {"__ALL__"}
-    return prefixes
+def _provinces_of(region_names: List[str]) -> set:
+    provinces = set()
+    for name in region_names or []:
+        if name == "전국":
+            provinces.add("__ALL__")
+            continue
+        provinces.add(name.split(" ")[0])
+    return provinces
 
 
-def regions_overlap(zip_cd_a: str, zip_cd_b: str) -> bool:
-    provinces_a = _provinces_of(zip_cd_a)
-    provinces_b = _provinces_of(zip_cd_b)
+def regions_overlap(region_names_a: List[str], region_names_b: List[str]) -> bool:
+    provinces_a = _provinces_of(region_names_a)
+    provinces_b = _provinces_of(region_names_b)
 
     if "__ALL__" in provinces_a or "__ALL__" in provinces_b:
         return True
@@ -88,11 +86,11 @@ def find_duplicate_candidates(
     """
     지역이 겹치고 제목 단어 유사도가 threshold 이상인 레코드 쌍을 찾는다.
     지역(시도) 단위로 블로킹해서 비교 횟수를 줄인다.
-    같은 (source, plcyNo) 레코드끼리는 비교하지 않는다.
+    같은 (source, source_id) 레코드끼리는 비교하지 않는다.
     """
     by_province: Dict[str, List[int]] = {}
     for idx, record in enumerate(records):
-        provinces = _provinces_of(record.get("zipCd") or "")
+        provinces = _provinces_of(record.get("region_names") or [])
         if not provinces:
             provinces = {"__NONE__"}
         for p in provinces:
@@ -118,29 +116,29 @@ def find_duplicate_candidates(
 
                 rec_a, rec_b = records[i], records[j]
 
-                if rec_a.get("source") == rec_b.get("source") and rec_a.get("plcyNo") == rec_b.get("plcyNo"):
+                if rec_a.get("source") == rec_b.get("source") and rec_a.get("source_id") == rec_b.get("source_id"):
                     continue
 
-                if not regions_overlap(rec_a.get("zipCd"), rec_b.get("zipCd")):
+                if not regions_overlap(rec_a.get("region_names"), rec_b.get("region_names")):
                     continue
 
-                sim = title_similarity(rec_a.get("plcyNm", ""), rec_b.get("plcyNm", ""))
+                sim = title_similarity(rec_a.get("title", ""), rec_b.get("title", ""))
                 if sim >= threshold:
                     candidates.append({
                         "similarity": round(sim, 3),
                         "a": {
                             "source": rec_a.get("source"),
-                            "plcyNo": rec_a.get("plcyNo"),
-                            "plcyNm": rec_a.get("plcyNm"),
-                            "zipCd": rec_a.get("zipCd"),
-                            "sprvsnInstCdNm": rec_a.get("sprvsnInstCdNm"),
+                            "source_id": rec_a.get("source_id"),
+                            "title": rec_a.get("title"),
+                            "region_names": rec_a.get("region_names"),
+                            "agency": rec_a.get("agency"),
                         },
                         "b": {
                             "source": rec_b.get("source"),
-                            "plcyNo": rec_b.get("plcyNo"),
-                            "plcyNm": rec_b.get("plcyNm"),
-                            "zipCd": rec_b.get("zipCd"),
-                            "sprvsnInstCdNm": rec_b.get("sprvsnInstCdNm"),
+                            "source_id": rec_b.get("source_id"),
+                            "title": rec_b.get("title"),
+                            "region_names": rec_b.get("region_names"),
+                            "agency": rec_b.get("agency"),
                         },
                     })
 
