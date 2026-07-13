@@ -1,0 +1,99 @@
+[
+  {
+    "source": "manual",
+    "source_id": "manual-9926e296b1f4",
+    "title": "2025년 농식품 바우처 사업",
+    "agency": "",
+    "region_names": [
+      "전국"
+    ],
+    "life_cycle": [
+      "임산부",
+      "영유아",
+      "만 18세 이하 아동"
+    ],
+    "theme_keywords": [
+      "식품",
+      "바우처",
+      "농식품"
+    ],
+    "employment_status": [],
+    "apply_period_type": "특정기간",
+    "apply_period": "2025-02-17 ~ 2025-12-12",
+    "service_period_type": "기간한정",
+    "service_period": "2025-03-01 ~ 2025-12-31",
+    "target_text": "생계급여(기준 중위소득 32% 이하) 수급 가구 중 임산부·영유아·만 18세 이하 아동 포함 가구",
+    "target_age_min": null,
+    "target_age_max": null,
+    "target_income_condition": "중위소득 32% 이하",
+    "support_text": "국산 과일류, 채소류, 흰우유, 신선알류, 육류, 잡곡류, 두부류를 구입할 수 있는 농식품바우처 카드 지원(월 10만원/4인가구 기준)",
+    "apply_method": "온라인, ARS, 오프라인",
+    "link": "www.foodvoucher.go.kr",
+    "raw": null,
+    "_warnings": [
+      {
+        "level": "warning",
+        "field": "link",
+        "message": "URL 형식이 아닌 것 같습니다: 'www.foodvoucher.go.kr'"
+      }
+    ]
+  },
+  {
+    "source": "manual",
+    "source_id": "manual-ce6bf69a52d9",
+    "title": "청년 부동산 중개보수 이사비 지원사업",
+    "agency": "서울특별시 청년정책과",
+    "region_names": [
+      "서울특별시 전체"
+    ],
+    "life_cycle": [
+      "청년"
+    ],
+    "theme_keywords": [
+      "주거지원"
+    ],
+    "employment_status": [],
+    "apply_period_type": "특정기간",
+    "apply_period": "2026-05-01 ~ 2026-05-14",
+    "service_period_type": "기간한정",
+    "service_period": "2026-01-01 ~ 2026-12-31",
+    "target_text": "만 19~39세",
+    "target_age_min": 19,
+    "target_age_max": 39,
+    "target_income_condition": "중위소득 150% 이하",
+    "support_text": "최대 40만원 실비 지원",
+    "apply_method": "온라인 신청",
+    "link": "https://youth.seoul.go.kr",
+    "raw": null
+  },
+  {
+    "source": "manual",
+    "source_id": "manual-683e7438bc5c",
+    "title": "국가장학금 2학기 신청 안내",
+    "agency": "한국장학재단",
+    "region_names": [
+      "전국"
+    ],
+    "life_cycle": [
+      "청년",
+      "대학생"
+    ],
+    "theme_keywords": [
+      "교육",
+      "학자금"
+    ],
+    "employment_status": [],
+    "apply_period_type": "특정기간",
+    "apply_period": "2026-08-01 ~ 2026-08-20",
+    "service_period_type": "상시",
+    "service_period": "",
+    "target_text": "대학 재학 중인 소득분위 8구간 이하 학생",
+    "target_age_min": null,
+    "target_age_max": null,
+    "target_income_condition": "소득 8구간 이하",
+    "support_text": "등록금 전액 또는 일부 지원",
+    "apply_method": "한국장학재단 홈페이지",
+    "link": "https://www.kosaf.go.kr",
+    "raw": null
+  }
+]

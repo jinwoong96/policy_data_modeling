@@ -66,6 +66,43 @@ def _welfare_biz_period(record: Dict[str, Any]):
     return bgng, end, ""
 
 
+# 지자체복지서비스 API의 "관심주제"(intrsThemaNmArray)는 자유텍스트가 아니라 공식 코드표
+# (지자체복지서비스_코드표(v1.0).doc, 관심주제 14종: 신체건강/정신건강/생활지원/주거/일자리/
+# 문화·여가/안전·위기/임신·출산/보육/교육/입양·위탁/보호·돌봄/서민금융/법률)에 정의된
+# 고정 값이라, 온통청년 대분류(lclsfNm, 5종: 일자리/주거/교육/복지문화/참여권리)로의 매핑도
+# 코드표 대 코드표 대응이라 "지어내는" 것과는 다르다고 보고 채운다.
+# 반면 mclsfNm(중분류)은 두 코드표 사이에 이 정도로 명확한 대응이 없어 계속 비워둔다.
+WELFARE_THEME_TO_LCLSF = {
+    "일자리": "일자리",
+    "주거": "주거",
+    "교육": "교육",
+    "법률": "참여권리",
+    "안전·위기": "참여권리",
+    "신체건강": "복지문화",
+    "정신건강": "복지문화",
+    "생활지원": "복지문화",
+    "문화·여가": "복지문화",
+    "임신·출산": "복지문화",
+    "보육": "복지문화",
+    "입양·위탁": "복지문화",
+    "보호·돌봄": "복지문화",
+    "서민금융": "복지문화",
+}
+# 한 레코드에 관심주제가 여러 개 걸려 있을 때(예: "일자리, 서민금융") 어느 대분류를
+# 대표값으로 쓸지 우선순위. 일자리/주거/교육처럼 구체적인 분류를 "복지문화"라는
+# 포괄 분류보다 우선한다.
+WELFARE_LCLSF_PRIORITY = ["일자리", "주거", "교육", "참여권리", "복지문화"]
+
+
+def _welfare_lclsf(theme_text: str) -> str:
+    themes = [t.strip() for t in (theme_text or "").split(",") if t.strip()]
+    buckets = {WELFARE_THEME_TO_LCLSF[t] for t in themes if t in WELFARE_THEME_TO_LCLSF}
+    for candidate in WELFARE_LCLSF_PRIORITY:
+        if candidate in buckets:
+            return candidate
+    return ""
+
+
 def welfare_to_ontong(record: Dict[str, Any], region_std: RegionStandardizer) -> dict:
     target_text = _welfare_target_text(record)
     age_min, age_max = extract_age_range(target_text)
@@ -100,7 +137,9 @@ def welfare_to_ontong(record: Dict[str, Any], region_std: RegionStandardizer) ->
         plcyNm=record.get("servNm", ""),
         plcyKywdNm=(record.get("intrsThemaNmArray") or "").strip(),
         plcyExplnCn=(record.get("servDgst") or "").strip(),
-        # lclsfNm/mclsfNm: 온통청년 자체 정책 대/중분류 체계 - 지자체 데이터엔 대응 개념이 없어 비움
+        # lclsfNm: 관심주제(intrsThemaNmArray) 코드표를 온통청년 대분류로 매핑 (위 설명 참고)
+        lclsfNm=_welfare_lclsf(record.get("intrsThemaNmArray")),
+        # mclsfNm: 온통청년 자체 중분류 체계와 명확히 대응되지 않아 비움
         # plcyPvsnMthdCd: 코드 대응 불확실 - 비움 (원문은 etcMttrCn에 보존)
 
         # pvsnInstGroupCd: 지자체복지서비스 출처 자체가 "지자체"이므로 이건 추측이 아니라
