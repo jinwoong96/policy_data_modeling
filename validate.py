@@ -9,7 +9,11 @@ from schema import COMMON_SCHEMA_FIELDS
 ALLOWED_APPLY_PERIOD_TYPES = {"상시", "마감", "특정기간", "확인필요"}
 ALLOWED_SERVICE_PERIOD_TYPES = {"상시", "기간한정", "확인필요"}
 
-LIST_FIELDS = ["region_names", "life_cycle", "theme_keywords", "employment_status"]
+LIST_FIELDS = [
+    "region_names", "life_cycle", "theme_keywords", "employment_status",
+    "provision_method", "special_target_groups", "education_condition",
+    "major_condition",
+]
 
 
 def _add(issues: List[Dict[str, str]], level: str, field: str, message: str) -> None:
@@ -60,6 +64,14 @@ def validate_record(record: Dict[str, Any]) -> List[Dict[str, str]]:
     link = record.get("link") or ""
     if link and not link.startswith("http"):
         _add(issues, "warning", "link", f"URL 형식이 아닌 것 같습니다: {link!r}")
+
+    view_count = record.get("view_count")
+    if view_count is not None and not isinstance(view_count, int):
+        _add(issues, "warning", "view_count", f"정수가 아닙니다: {view_count!r}")
+
+    marital_status = record.get("marital_status")
+    if marital_status is not None and marital_status not in ("기혼", "미혼"):
+        _add(issues, "warning", "marital_status", f"예상하지 못한 값: {marital_status!r}")
 
     return issues
 

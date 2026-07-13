@@ -118,11 +118,18 @@ ONTONG_APLY_PRD_SE_CD_MAP = {
     "0057003": "마감",
 }
 
-# 온통청년 사업기간구분코드(bizPrdSeCd) 매핑 (데이터 실측으로 확인)
+# 온통청년 사업기간구분코드(bizPrdSeCd) 매핑
+# 공식 코드표(api_code_table/온통청년API코드정보.xlsx) 기준: 0056001=특정기간, 0056002=기타
+# "기타"(0056002)를 곧바로 "상시"로 단정하면 안 된다 - 실측 결과 bizPrdEtcCn 자유텍스트에
+# "연중"/"상시"/"계속"뿐 아니라 "2026. 1. ~ 12."처럼 실제 기간이 문장으로 들어있는
+# 경우도 섞여 있었다(1035건 중 대략 170건). 그래서 텍스트를 다시 살펴서 분류한다.
 ONTONG_BIZ_PRD_SE_CD_MAP = {
     "0056001": "기간한정",
-    "0056002": "상시",
+    "0056002": "확인필요",  # 아래 ontong_service_period에서 bizPrdEtcCn을 보고 재분류함
 }
+
+_ONGOING_ETC_KEYWORDS = ["상시", "연중", "계속", "연례반복", "매년", "예산 소진"]
+_YEAR_IN_ETC_PAT = re.compile(r"20\d{2}")
 
 
 def ontong_apply_period(record: Dict[str, Any]) -> Tuple[str, Optional[str]]:
@@ -151,14 +158,25 @@ def ontong_service_period(record: Dict[str, Any]) -> Tuple[str, Optional[str]]:
     code = record.get("bizPrdSeCd", "")
     period_type = ONTONG_BIZ_PRD_SE_CD_MAP.get(code, "확인필요")
 
-    if period_type != "기간한정":
+    if period_type == "기간한정":
+        start = format_ymd(record.get("bizPrdBgngYmd"))
+        end = format_ymd(record.get("bizPrdEndYmd"))
+        if start and end:
+            return period_type, f"{start} ~ {end}"
         return period_type, None
 
-    start = format_ymd(record.get("bizPrdBgngYmd"))
-    end = format_ymd(record.get("bizPrdEndYmd"))
-
-    if start and end:
-        return period_type, f"{start} ~ {end}"
+    if code == "0056002":
+        # 공식 코드표상 "기타" - bizPrdEtcCn 자유 텍스트로 다시 분류
+        etc = (record.get("bizPrdEtcCn") or "").strip()
+        if not etc:
+            return "확인필요", None
+        if any(kw in etc for kw in _ONGOING_ETC_KEYWORDS) and not _YEAR_IN_ETC_PAT.search(etc):
+            return "상시", None
+        if _YEAR_IN_ETC_PAT.search(etc):
+            # "2026. 1. ~ 12." 처럼 실제 기간이 문장으로 들어있는 경우: 형식이 제각각이라
+            # YYYY-MM-DD로 못 바꾸고, 원문 그대로 보존한다.
+            return "기간한정", etc
+        return "확인필요", etc
 
     return period_type, None
 
@@ -201,6 +219,129 @@ def clean_ontong_age(min_age_raw: str, max_age_raw: str):
 
 
 # ---------------------------------------------------------------------------
+# 온통청년 코드표 (api_code_table/온통청년API코드정보.xlsx 기준, 실측 확인)
+# ---------------------------------------------------------------------------
+
+# 정책제공방법코드(plcyPvsnMthdCd, 0042) - 값 1개
+ONTONG_PLCY_PVSN_MTHD_CD_MAP = {
+    "0042001": "인프라 구축",
+    "0042002": "프로그램",
+    "0042003": "직접대출",
+    "0042004": "공공기관",
+    "0042005": "계약(위탁운영)",
+    "0042006": "보조금",
+    "0042007": "대출보증",
+    "0042008": "공적보험",
+    "0042009": "조세지출",
+    "0042010": "바우처",
+    "0042011": "정보제공",
+    "0042012": "경제적 규제",
+    "0042013": "기타",
+}
+
+# 결혼상태코드(mrgSttsCd, 0055) - 값 1개
+ONTONG_MRG_STTS_CD_MAP = {
+    "0055001": "기혼",
+    "0055002": "미혼",
+    "0055003": "제한없음",
+}
+
+# 정책취업요건코드(jobCd, 0013) - 콤마로 여러 개 올 수 있음 (실측: 115건)
+ONTONG_JOB_CD_MAP = {
+    "0013001": "재직자",
+    "0013002": "자영업자",
+    "0013003": "미취업자",
+    "0013004": "프리랜서",
+    "0013005": "일용근로자",
+    "0013006": "창업자",  # 원문 라벨은 "(예비)창업자" - 재직/취업 상태 표준 태그와 맞춰서 축약
+    "0013007": "단기근로자",
+    "0013008": "농업인",  # 원문 라벨은 "영농종사자" - 재직/취업 상태 표준 태그(농업인)와 통일
+    "0013009": "기타",
+    "0013010": "제한없음",
+}
+
+# 정책학력요건코드(schoolCd, 0049) - 콤마로 여러 개 올 수 있음 (실측: 149건)
+ONTONG_SCHOOL_CD_MAP = {
+    "0049001": "고졸 미만",
+    "0049002": "고교 재학",
+    "0049003": "고졸 예정",
+    "0049004": "고교 졸업",
+    "0049005": "대학 재학",
+    "0049006": "대졸 예정",
+    "0049007": "대학 졸업",
+    "0049008": "석·박사",
+    "0049009": "기타",
+    "0049010": "제한없음",
+}
+
+# 정책특화요건코드(sbizCd, 0014) - 콤마로 여러 개 올 수 있음 (실측: 24건)
+ONTONG_SBIZ_CD_MAP = {
+    "0014001": "중소기업",
+    "0014002": "여성",
+    "0014003": "기초생활수급자",
+    "0014004": "한부모가정",
+    "0014005": "장애인",
+    "0014006": "농업인",
+    "0014007": "군인",
+    "0014008": "지역인재",
+    "0014009": "기타",
+    "0014010": "제한없음",
+}
+
+# 정책전공요건코드(plcyMajorCd, 0011) - 콤마로 여러 개 올 수 있음 (실측 확인)
+ONTONG_MAJOR_CD_MAP = {
+    "0011001": "인문계열",
+    "0011002": "사회계열",
+    "0011003": "상경계열",
+    "0011004": "이학계열",
+    "0011005": "공학계열",
+    "0011006": "예체능계열",
+    "0011007": "농산업계열",
+    "0011008": "기타",
+    "0011009": "제한없음",
+}
+
+_NO_RESTRICTION_LABELS = {"제한없음"}
+
+
+def decode_multi_code(raw_value: Optional[str], code_map: Dict[str, str]) -> List[str]:
+    """
+    "0049005,0049006" 처럼 콤마로 여러 코드가 올 수 있는 필드를 라벨 리스트로 바꾼다.
+    "제한없음"은 조건이 없다는 뜻이라 리스트에서 뺀다(빈 리스트 = 조건 없음).
+    모르는 코드값은 원본 코드를 그대로 남겨서 데이터가 사라지지 않게 한다.
+    """
+    if not raw_value:
+        return []
+
+    labels = []
+    for code in raw_value.split(","):
+        code = code.strip()
+        if not code:
+            continue
+        label = code_map.get(code, code)
+        if label in _NO_RESTRICTION_LABELS:
+            continue
+        labels.append(label)
+
+    return labels
+
+
+def decode_single_code(raw_value: Optional[str], code_map: Dict[str, str]) -> Optional[str]:
+    """
+    값이 1개만 오는 코드 필드를 라벨로 바꾼다. "제한없음"이거나 값이 없으면 None.
+    """
+    code = (raw_value or "").strip()
+    if not code:
+        return None
+
+    label = code_map.get(code, code)
+    if label in _NO_RESTRICTION_LABELS:
+        return None
+
+    return label
+
+
+# ---------------------------------------------------------------------------
 # 재직/취업 상태 표준화 (자유 텍스트 -> 표준 태그)
 # ---------------------------------------------------------------------------
 
@@ -212,8 +353,10 @@ EMPLOYMENT_STATUS_RULES: List[Tuple[str, List[str]]] = [
     ("창업자", ["예비창업자", "창업자", "창업 준비"]),
     ("재학생", ["재학생", "휴학생", "대학생", "대학원생"]),
     ("졸업생", ["졸업생", "졸업예정자", "미취업 졸업생"]),
-    ("농업인", ["농업인", "귀농", "농업 종사자"]),
+    ("농업인", ["농업인", "귀농", "농업 종사자", "영농"]),
     ("프리랜서", ["프리랜서", "특수형태근로종사자", "예술인"]),
+    ("일용근로자", ["일용근로자", "일용직"]),
+    ("단기근로자", ["단기근로자", "단기근로"]),
 ]
 
 

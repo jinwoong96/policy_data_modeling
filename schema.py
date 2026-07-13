@@ -27,6 +27,14 @@
 # support_text           : 지원내용 원문 (금액/한도 등 포함)
 # apply_method           : 신청 방법
 # link                   : 신청 또는 공식 안내 페이지 링크 (없으면 빈 문자열)
+# description            : 정책/서비스 설명·취지 (지원내용과 별개로, 왜 만들어졌는지 짧은 설명)
+# provision_method       : 제공방식 태그 리스트 (예: ["보조금"], ["현금지급","지역화폐"])
+# special_target_groups  : 특수 대상군 태그 리스트 (예: ["장애인","한부모가정"], 없으면 빈 리스트)
+# education_condition    : 학력 조건 태그 리스트 (예: ["대학 재학"], 없으면 빈 리스트 - 조건 없음)
+# major_condition        : 전공계열 조건 태그 리스트 (예: ["공학계열"], 없으면 빈 리스트 - 조건 없음)
+# marital_status         : 혼인상태 조건 ("기혼" | "미혼" | None - 조건 없음/정보 없음)
+# view_count             : 조회수 (int | None)
+# last_updated           : 최종 수정일 "YYYY-MM-DD" (str | None)
 # raw                    : 원본 레코드 전체 (역추적/디버깅용, 그대로 보존)
 
 COMMON_SCHEMA_FIELDS = [
@@ -49,6 +57,14 @@ COMMON_SCHEMA_FIELDS = [
     "support_text",
     "apply_method",
     "link",
+    "description",
+    "provision_method",
+    "special_target_groups",
+    "education_condition",
+    "major_condition",
+    "marital_status",
+    "view_count",
+    "last_updated",
     "raw",
 ]
 
@@ -78,6 +94,14 @@ def new_common_record(**kwargs) -> dict:
         "support_text": "",
         "apply_method": "",
         "link": "",
+        "description": "",
+        "provision_method": [],
+        "special_target_groups": [],
+        "education_condition": [],
+        "major_condition": [],
+        "marital_status": None,
+        "view_count": None,
+        "last_updated": None,
         "raw": None,
     }
     record.update(kwargs)
