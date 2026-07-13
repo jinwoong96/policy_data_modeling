@@ -1,0 +1,4 @@
+.env
+__pycache__/
+*.pyc
+data/manual_policies.json
