@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>정책 수동추가 · 로컬 테스트</title>
+<style>
+  :root {
+    --accent: #2855DE;
+    --accent-dim: #EAEFFD;
+    --ink: #1A1D24;
+    --ink-soft: #5B6170;
+    --line: #E3E5EA;
+    --bg: #F7F8FA;
+    --panel: #FFFFFF;
+    --error: #C0392B;
+    --error-bg: #FCEDEB;
+    --warn: #9A6700;
+    --warn-bg: #FFF6E0;
+    --ok: #1E7A4C;
+    --ok-bg: #E9F7EF;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  header h1 { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  header .tag {
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  header .stats { margin-left: auto; font-size: 12px; color: var(--ink-soft); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(420px, 560px) 1fr;
+    gap: 0;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .form-col { padding: 28px 32px; border-right: 1px solid var(--line); }
+  .result-col { padding: 28px 32px; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 24px 0 10px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--ink);
+  }
+  .field { margin-bottom: 14px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%;
+    padding: 9px 11px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-family: inherit;
+    background: var(--panel);
+    color: var(--ink);
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .actions { margin-top: 22px; display: flex; gap: 10px; }
+  button {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: #fff; }
+  button.primary:hover { background: #1F44B8; }
+  button.primary:disabled { background: #B7C3EF; cursor: not-allowed; }
+  button.ghost { background: var(--panel); color: var(--ink); border-color: var(--line); }
+  button.ghost:hover { background: var(--bg); }
+
+  .result-empty {
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    line-height: 1.7;
+    padding: 32px 0;
+  }
+
+  .status-banner {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .status-banner.ok { background: var(--ok-bg); color: var(--ok); }
+  .status-banner.blocked { background: var(--error-bg); color: var(--error); }
+
+  .issue-group { margin-bottom: 20px; }
+  .issue-group h3 {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 8px;
+  }
+  .issue-group.errors h3 { color: var(--error); }
+  .issue-group.warnings h3 { color: var(--warn); }
+  .issue-card {
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+  .issue-card.error { background: var(--error-bg); color: var(--error); }
+  .issue-card.warning { background: var(--warn-bg); color: var(--warn); }
+  .issue-card .field-name { font-family: var(--mono); font-size: 11.5px; opacity: 0.8; margin-bottom: 2px; }
+
+  .dup-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    background: var(--panel);
+  }
+  .dup-card .sim {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+  }
+  .dup-card .dup-title { font-weight: 600; font-size: 13.5px; margin-bottom: 3px; }
+  .dup-card .dup-meta { font-size: 12px; color: var(--ink-soft); }
+  .dup-card .dup-meta span { margin-right: 10px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .hint { font-size: 11.5px; color: var(--ink-soft); margin-top: 3px; }
+
+  .testcase-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 12px 32px;
+    background: #FBFBFD;
+    border-bottom: 1px solid var(--line);
+  }
+  .testcase-bar label {
+    margin: 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .testcase-bar select {
+    flex: 1;
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+  .testcase-note {
+    padding: 0 32px 12px;
+    background: #FBFBFD;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    display: none;
+  }
+  .testcase-note.show { display: block; }
+  .expected-badge {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-right: 6px;
+  }
+  .expected-badge.duplicate { background: var(--accent-dim); color: var(--accent); }
+  .expected-badge.unique { background: var(--ok-bg); color: var(--ok); }
+  .expected-badge.error { background: var(--error-bg); color: var(--error); }
+  .expected-badge.warning { background: var(--warn-bg); color: var(--warn); }
+
+  .dup-compare-toggle {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 0 0;
+    cursor: pointer;
+  }
+  .dup-compare-toggle:hover { text-decoration: underline; }
+
+  .compare-table {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    display: none;
+  }
+  .compare-table.show { display: block; }
+  .compare-row {
+    display: grid;
+    grid-template-columns: 110px 1fr 1fr;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+  }
+  .compare-row:last-child { border-bottom: none; }
+  .compare-row.diff { background: var(--warn-bg); }
+  .compare-row .col-label {
+    padding: 7px 9px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+    font-size: 11.5px;
+  }
+  .compare-row .col-val {
+    padding: 7px 9px;
+    border-right: 1px solid var(--line);
+    word-break: break-word;
+    line-height: 1.5;
+  }
+  .compare-row .col-val:last-child { border-right: none; }
+  .compare-row .col-val.empty { color: var(--ink-soft); font-style: italic; }
+  .compare-head {
+    display: grid;
+    grid-template-columns: 110px 1fr 1fr;
+    background: var(--bg);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-soft);
+  }
+  .compare-head > div { padding: 6px 9px; border-right: 1px solid var(--line); }
+  .compare-head > div:last-child { border-right: none; }
+  .compare-filter {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 9px;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+  .compare-filter label {
+    margin: 0;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+  }
+
+  .extract-panel {
+    padding: 16px 32px;
+    background: #F0F3FE;
+    border-bottom: 1px solid var(--line);
+  }
+  .extract-panel .extract-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .extract-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .extract-row .file-input-wrap {
+    flex: 0 0 auto;
+  }
+  .extract-row input[type=file] {
+    font-size: 12px;
+    max-width: 220px;
+  }
+  .extract-row textarea {
+    flex: 1;
+    min-height: 38px;
+    font-size: 12.5px;
+  }
+  .extract-hint { font-size: 11px; color: var(--ink-soft); margin-top: 6px; }
+  .extract-status {
+    font-size: 12.5px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    display: none;
+  }
+  .extract-status.show { display: block; }
+  .extract-status.loading { background: var(--accent-dim); color: var(--accent); }
+  .extract-status.ok { background: var(--ok-bg); color: var(--ok); }
+  .extract-status.error { background: var(--error-bg); color: var(--error); }
+  .ai-filled-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>정책 수동추가 테스트</h1>
+  <span class="tag">LOCAL ONLY</span>
+  <span class="stats" id="stats">로딩 중...</span>
+</header>
+
+<div class="extract-panel">
+  <div class="extract-title">공고문에서 자동 채우기</div>
+  <div class="extract-row">
+    <div class="file-input-wrap">
+      <input type="file" id="extract-file" accept=".pdf,.png,.jpg,.jpeg" />
+    </div>
+    <textarea id="extract-text" placeholder="또는 공고문 텍스트를 여기에 붙여넣기"></textarea>
+    <button class="primary" id="btn-extract" type="button">AI로 채우기</button>
+  </div>
+  <div class="extract-hint">PDF · PNG · JPG 지원 (HWP는 PDF로 변환 후 업로드). 파일과 텍스트를 같이 넣으면 둘 다 참고합니다.</div>
+  <div class="extract-status" id="extract-status"></div>
+</div>
+
+<div class="testcase-bar">
+  <label for="testcase-select">더미 테스트케이스</label>
+  <select id="testcase-select">
+    <option value="">직접 입력</option>
+  </select>
+</div>
+<div class="testcase-note" id="testcase-note"></div>
+
+<div class="layout">
+  <div class="form-col">
+    <div class="section-title">기본 정보</div>
+    <div id="form-fields"></div>
+
+    <div class="actions">
+      <button class="ghost" id="btn-reset" type="button">초기화</button>
+      <button class="primary" id="btn-check" type="button">검사하기</button>
+    </div>
+  </div>
+
+  <div class="result-col">
+    <div id="result" class="result-empty">
+      왼쪽 폼을 채우고 <strong>검사하기</strong>를 누르면<br/>
+      필드 오류 · 경고 · 중복 의심 정책이 여기에 표시됩니다.
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "";
+let SCHEMA_FIELDS = [];
+let COMPARE_FIELDS = [];
+let lastCheckPassed = false;
+
+// 필드가 schema.py(=서버의 COMMON_SCHEMA_FIELDS)에 추가되면 /api/schema에는 자동으로
+// 나타나지만, 폼 위에서 어느 섹션 아래 보여줄지는 이 그룹 배열이 결정한다. 여기 없는
+// 필드는 그려지지 않으니, 새 필드를 추가하면 이 배열에도 넣어줘야 한다.
+const GROUPS = [
+  { title: "기본 정보", fields: ["title", "agency", "link"] },
+  { title: "지역 / 분류", fields: ["region_names", "life_cycle", "theme_keywords", "employment_status", "special_target_groups"] },
+  { title: "기간", fields: ["apply_period_type", "apply_period", "service_period_type", "service_period"] },
+  { title: "지원 대상 / 조건", fields: ["target_text", "target_age_min", "target_age_max", "target_income_condition", "education_condition", "major_condition", "marital_status"] },
+  { title: "지원 내용 / 신청", fields: ["support_text", "apply_method", "provision_method", "description"] },
+];
+
+async function loadSchema() {
+  const res = await fetch("/api/schema");
+  const data = await res.json();
+  SCHEMA_FIELDS = data.fields;
+  COMPARE_FIELDS = data.compare_fields;
+  renderForm();
+}
+
+async function loadStats() {
+  const res = await fetch("/api/policies?limit=1");
+  const data = await res.json();
+  document.getElementById("stats").textContent =
+    `기존 ${data.existing_count.toLocaleString()}건 + 수동추가 ${data.manual_count.toLocaleString()}건 = 총 ${data.total.toLocaleString()}건`;
+}
+
+function fieldMeta(name) {
+  return SCHEMA_FIELDS.find(f => f.name === name);
+}
+
+function renderInput(meta) {
+  const id = `f_${meta.name}`;
+  if (meta.type === "textarea") {
+    return `<textarea id="${id}" rows="3"></textarea>`;
+  }
+  if (meta.type === "select") {
+    const opts = meta.options.map(o => `<option value="${o}">${o === "" ? "(조건 없음)" : o}</option>`).join("");
+    return `<select id="${id}">${opts}</select>`;
+  }
+  if (meta.type === "int") {
+    return `<input type="number" id="${id}" />`;
+  }
+  if (meta.type === "tags") {
+    return `<input type="text" id="${id}" placeholder="쉼표로 구분해서 입력" />`;
+  }
+  return `<input type="text" id="${id}" />`;
+}
+
+function renderForm() {
+  const container = document.getElementById("form-fields");
+  let html = "";
+  GROUPS.forEach((group, gi) => {
+    html += `<div class="section-title" ${gi === 0 ? 'style="margin-top:0"' : ''}>${group.title}</div>`;
+    group.fields.forEach(name => {
+      const meta = fieldMeta(name);
+      if (!meta) return;
+      const hint = meta.type === "tags" ? `<div class="hint">예: 서울특별시 전체, 청년</div>` : "";
+      html += `<div class="field"><label>${meta.label}<span class="badge-slot" id="badge_${meta.name}"></span></label>${renderInput(meta)}${hint}</div>`;
+    });
+  });
+  container.innerHTML = html;
+
+  // GROUPS에 없는(빠뜨린) 필드가 있으면 콘솔에 경고 - 새 필드 추가 시 그룹 배열
+  // 갱신을 깜빡하는 실수를 바로 알아챌 수 있게.
+  const grouped = new Set(GROUPS.flatMap(g => g.fields));
+  const missing = SCHEMA_FIELDS.map(f => f.name).filter(n => !grouped.has(n));
+  if (missing.length) {
+    console.warn("GROUPS 배열에 없어서 폼에 안 그려지는 필드:", missing);
+  }
+}
+
+function collectPayload() {
+  const payload = {};
+  SCHEMA_FIELDS.forEach(meta => {
+    const el = document.getElementById(`f_${meta.name}`);
+    if (!el) return;
+    let val = el.value;
+    if (meta.type === "tags") {
+      payload[meta.name] = val.split(",").map(s => s.trim()).filter(Boolean);
+    } else if (meta.type === "int") {
+      payload[meta.name] = val === "" ? null : parseInt(val, 10);
+    } else {
+      payload[meta.name] = val;
+    }
+  });
+  return payload;
+}
+
+function issueCard(issue, level) {
+  return `<div class="issue-card ${level}">
+    <div class="field-name">${issue.field}</div>
+    ${issue.message}
+  </div>`;
+}
+
+const SOURCE_LABELS = { ontong: "온통청년", welfare: "지자체복지", manual: "수동추가" };
+
+function formatValue(type, val) {
+  if (val === null || val === undefined || val === "") return { text: "-", empty: true };
+  if (type === "tags") {
+    if (!Array.isArray(val) || val.length === 0) return { text: "-", empty: true };
+    return { text: val.join(", "), empty: false };
+  }
+  return { text: String(val), empty: false };
+}
+
+function valuesEqual(type, a, b) {
+  if (type === "tags") {
+    const na = (Array.isArray(a) ? a : []).slice().sort().join("|");
+    const nb = (Array.isArray(b) ? b : []).slice().sort().join("|");
+    return na === nb;
+  }
+  const na = (a === null || a === undefined) ? "" : String(a).trim();
+  const nb = (b === null || b === undefined) ? "" : String(b).trim();
+  return na === nb;
+}
+
+function buildCompareTable(newRecord, existing, cardId) {
+  let diffCount = 0;
+  const rows = COMPARE_FIELDS.map(meta => {
+    let newVal = newRecord[meta.name];
+    let exVal = existing[meta.name];
+    if (meta.name === "source") {
+      newVal = SOURCE_LABELS[newVal] || newVal;
+      exVal = SOURCE_LABELS[exVal] || exVal;
+    }
+    const isDiff = !valuesEqual(meta.type, newRecord[meta.name], existing[meta.name]);
+    if (isDiff) diffCount++;
+    const nf = formatValue(meta.type, newVal);
+    const ef = formatValue(meta.type, exVal);
+    return `<div class="compare-row ${isDiff ? 'diff' : 'same'}" data-diff="${isDiff}" style="${isDiff ? '' : 'display:none'}">
+      <div class="col-label">${meta.label}</div>
+      <div class="col-val ${nf.empty ? 'empty' : ''}">${nf.text}</div>
+      <div class="col-val ${ef.empty ? 'empty' : ''}">${ef.text}</div>
+    </div>`;
+  }).join("");
+
+  return `
+    <button class="dup-compare-toggle" type="button" onclick="toggleCompare('${cardId}')">
+      항목별 비교 보기 (다른 항목 ${diffCount}개)
+    </button>
+    <div class="compare-table" id="${cardId}">
+      <div class="compare-head">
+        <div>필드</div><div>신규 입력</div><div>기존 정책</div>
+      </div>
+      ${rows}
+      <div class="compare-filter">
+        <label><input type="checkbox" checked onchange="filterCompare('${cardId}', this.checked)"> 다른 항목만 보기</label>
+      </div>
+    </div>
+  `;
+}
+
+function toggleCompare(cardId) {
+  const el = document.getElementById(cardId);
+  el.classList.toggle("show");
+}
+
+function filterCompare(cardId, diffOnly) {
+  const el = document.getElementById(cardId);
+  el.querySelectorAll(".compare-row").forEach(row => {
+    const isDiff = row.dataset.diff === "true";
+    row.style.display = (diffOnly && !isDiff) ? "none" : "grid";
+  });
+}
+
+function dupCard(dup, idx, newRecord) {
+  const e = dup.existing;
+  const cardId = `compare-${idx}`;
+  return `<div class="dup-card">
+    <span class="sim">유사도 ${(dup.similarity * 100).toFixed(0)}%</span>
+    <div class="dup-title">${e.title}</div>
+    <div class="dup-meta">
+      <span>${SOURCE_LABELS[e.source] || e.source}</span>
+      <span>${e.agency || '-'}</span>
+      <span>${(e.region_names || []).join(', ') || '-'}</span>
+    </div>
+    ${buildCompareTable(newRecord, e, cardId)}
+  </div>`;
+}
+
+function renderResult(data) {
+  const el = document.getElementById("result");
+  let html = "";
+
+  if (data.can_save) {
+    html += `<div class="status-banner ok">오류 없음 — 저장할 수 있습니다${data.warning_count ? ` (경고 ${data.warning_count}건 확인 필요)` : ''}</div>`;
+  } else {
+    html += `<div class="status-banner blocked">오류 ${data.errors.length}건 — 수정 후 다시 검사해주세요</div>`;
+  }
+
+  if (data.errors.length) {
+    html += `<div class="issue-group errors"><h3>오류 (${data.errors.length})</h3>`;
+    data.errors.forEach(i => html += issueCard(i, "error"));
+    html += `</div>`;
+  }
+
+  if (data.warnings.length) {
+    html += `<div class="issue-group warnings"><h3>경고 (${data.warnings.length})</h3>`;
+    data.warnings.forEach(i => html += issueCard(i, "warning"));
+    html += `</div>`;
+  }
+
+  html += `<div class="issue-group"><h3 style="color: var(--ink-soft)">중복 의심 정책 (${data.duplicate_candidates.length})</h3>`;
+  if (data.duplicate_candidates.length === 0) {
+    html += `<div class="hint">지역이 겹치고 제목이 비슷한 기존 정책이 없습니다.</div>`;
+  } else {
+    data.duplicate_candidates.forEach((d, idx) => html += dupCard(d, idx, data.new_record));
+  }
+  html += `</div>`;
+
+  if (data.can_save) {
+    html += `<div class="actions" style="margin-top:20px">
+      <button class="primary" id="btn-save" type="button">그래도 저장하기</button>
+    </div>`;
+  }
+
+  el.className = "";
+  el.innerHTML = html;
+
+  if (data.can_save) {
+    document.getElementById("btn-save").addEventListener("click", savePolicy);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+async function checkPolicy() {
+  const payload = collectPayload();
+  const res = await fetch("/api/check", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    showToast("검사 요청 실패");
+    return;
+  }
+  const data = await res.json();
+  data.warning_count = data.warnings.length;
+  lastCheckPassed = data.can_save;
+  renderResult(data);
+}
+
+async function savePolicy() {
+  const payload = collectPayload();
+  const res = await fetch("/api/policies", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    showToast("저장 실패");
+    return;
+  }
+  showToast("저장되었습니다");
+  loadStats();
+  document.getElementById("result").className = "result-empty";
+  document.getElementById("result").innerHTML =
+    "저장이 완료됐어요. 폼을 초기화하고 다음 정책을 입력해보세요.";
+  document.getElementById("btn-reset").click();
+}
+
+let TEST_CASES = [];
+
+async function loadTestCases() {
+  const res = await fetch("/api/test-cases");
+  TEST_CASES = await res.json();
+  const sel = document.getElementById("testcase-select");
+  TEST_CASES.forEach(tc => {
+    const opt = document.createElement("option");
+    opt.value = tc.id;
+    opt.textContent = tc.label;
+    sel.appendChild(opt);
+  });
+}
+
+function fillFormFromPayload(payload) {
+  SCHEMA_FIELDS.forEach(meta => {
+    const el = document.getElementById(`f_${meta.name}`);
+    if (!el) return;
+    const val = payload[meta.name];
+    if (meta.type === "tags") {
+      el.value = Array.isArray(val) ? val.join(", ") : "";
+    } else if (meta.type === "int") {
+      el.value = (val === null || val === undefined) ? "" : val;
+    } else {
+      el.value = val === null || val === undefined ? "" : val;
+    }
+  });
+}
+
+function applyTestCase(id) {
+  const note = document.getElementById("testcase-note");
+  if (!id) {
+    note.classList.remove("show");
+    return;
+  }
+  const tc = TEST_CASES.find(t => t.id === id);
+  if (!tc) return;
+  fillFormFromPayload(tc.payload);
+  note.innerHTML = `<span class="expected-badge ${tc.expected}">${
+    tc.expected === "duplicate" ? "중복 예상" :
+    tc.expected === "unique" ? "중복 아님" :
+    tc.expected === "error" ? "오류 예상" : "경고만"
+  }</span>${tc.note}`;
+  note.classList.add("show");
+}
+
+function setExtractStatus(type, html) {
+  const el = document.getElementById("extract-status");
+  el.className = `extract-status show ${type}`;
+  el.innerHTML = html;
+}
+
+async function runExtract() {
+  const fileEl = document.getElementById("extract-file");
+  const textEl = document.getElementById("extract-text");
+  const file = fileEl.files[0];
+  const text = textEl.value.trim();
+
+  if (!file && !text) {
+    setExtractStatus("error", "파일을 선택하거나 텍스트를 붙여넣어주세요.");
+    return;
+  }
+
+  const btn = document.getElementById("btn-extract");
+  btn.disabled = true;
+  setExtractStatus("loading", "AI가 공고문을 읽는 중...");
+
+  const formData = new FormData();
+  if (file) formData.append("file", file);
+  if (text) formData.append("pasted_text", text);
+
+  try {
+    const res = await fetch("/api/extract", { method: "POST", body: formData });
+    const data = await res.json();
+    if (!res.ok) {
+      setExtractStatus("error", `추출 실패: ${data.detail || "알 수 없는 오류"}`);
+      btn.disabled = false;
+      return;
+    }
+
+    // 테스트케이스 선택 중이었다면 해제 (초안 출처 혼동 방지)
+    document.getElementById("testcase-select").value = "";
+    document.getElementById("testcase-note").classList.remove("show");
+
+    fillFormFromPayload(data.extracted);
+    data.filled_fields.forEach(name => {
+      const slot = document.getElementById(`badge_${name}`);
+      if (slot) slot.innerHTML = `<span class="ai-filled-badge">AI</span>`;
+    });
+
+    const emptyLabels = data.empty_fields
+      .map(name => (SCHEMA_FIELDS.find(f => f.name === name) || {}).label || name);
+    const emptyMsg = emptyLabels.length
+      ? `<br/>문서에서 못 찾은 항목 (직접 확인 필요): ${emptyLabels.join(", ")}`
+      : "";
+    setExtractStatus(
+      "ok",
+      `AI가 ${data.filled_fields.length}개 항목을 채웠어요. 저장 전에 꼭 내용을 확인해주세요.${emptyMsg}`
+    );
+  } catch (err) {
+    setExtractStatus("error", `요청 중 오류가 발생했습니다: ${err}`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("btn-extract").addEventListener("click", runExtract);
+
+document.getElementById("testcase-select").addEventListener("change", (e) => {
+  applyTestCase(e.target.value);
+});
+
+document.getElementById("btn-check").addEventListener("click", checkPolicy);
+document.getElementById("btn-reset").addEventListener("click", () => {
+  renderForm();
+  document.getElementById("testcase-select").value = "";
+  document.getElementById("testcase-note").classList.remove("show");
+  document.getElementById("extract-file").value = "";
+  document.getElementById("extract-text").value = "";
+  document.getElementById("extract-status").classList.remove("show");
+  document.getElementById("result").className = "result-empty";
+  document.getElementById("result").innerHTML =
+    `왼쪽 폼을 채우고 <strong>검사하기</strong>를 누르면<br/>필드 오류 · 경고 · 중복 의심 정책이 여기에 표시됩니다.`;
+});
+
+loadSchema();
+loadStats();
+loadTestCases();
+</script>
+
+</body>
+</html>

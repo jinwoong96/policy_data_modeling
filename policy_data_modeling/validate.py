@@ -33,7 +33,7 @@ def validate_record(record: Dict[str, Any]) -> List[Dict[str, str]]:
     if not (record.get("title") or "").strip():
         _add(issues, "error", "title", "title이 비어 있습니다.")
 
-    if record.get("source") not in ("ontong", "welfare"):
+    if record.get("source") not in ("ontong", "welfare", "manual"):
         _add(issues, "error", "source", f"알 수 없는 source 값: {record.get('source')!r}")
 
     for field in LIST_FIELDS:

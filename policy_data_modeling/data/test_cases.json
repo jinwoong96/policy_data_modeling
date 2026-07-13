@@ -1,0 +1,192 @@
+[
+  {
+    "id": "dup_exact_wording",
+    "label": "[중복 예상] 문구만 살짝 다른 제목 + 같은 지역",
+    "note": "기존 '청년 부동산 중개보수 및 이사비 지원사업'(서울 전체)과 조사만 다름 → 높은 유사도로 잡혀야 함",
+    "expected": "duplicate",
+    "payload": {
+      "title": "청년 부동산 중개보수 이사비 지원사업",
+      "agency": "서울특별시 청년정책과",
+      "region_names": ["서울특별시 전체"],
+      "life_cycle": ["청년"],
+      "theme_keywords": ["주거지원"],
+      "employment_status": [],
+      "apply_period_type": "특정기간",
+      "apply_period": "2026-05-01 ~ 2026-05-14",
+      "service_period_type": "기간한정",
+      "service_period": "2026-01-01 ~ 2026-12-31",
+      "target_text": "만 19~39세",
+      "target_age_min": 19,
+      "target_age_max": 39,
+      "target_income_condition": "중위소득 150% 이하",
+      "support_text": "최대 40만원 실비 지원",
+      "apply_method": "온라인 신청",
+      "link": "https://youth.seoul.go.kr"
+    }
+  },
+  {
+    "id": "dup_nationwide",
+    "label": "[중복 예상] 전국 정책 재등록",
+    "note": "기존 '청년주택드림청약통장'(전국)과 핵심 토큰이 겹침(붙여쓴 고유명사는 통짜 단어로 비교됨). region이 전국이면 항상 지역블로킹 통과",
+    "expected": "duplicate",
+    "payload": {
+      "title": "청년주택드림청약통장 안내",
+      "agency": "국토교통부",
+      "region_names": ["전국"],
+      "life_cycle": ["청년"],
+      "theme_keywords": ["주거"],
+      "employment_status": [],
+      "apply_period_type": "상시",
+      "apply_period": null,
+      "service_period_type": "상시",
+      "service_period": null,
+      "target_text": "만 19~34세 무주택 청년",
+      "target_age_min": 19,
+      "target_age_max": 34,
+      "support_text": "청약 시 우대금리 제공",
+      "apply_method": "은행 방문 또는 앱 신청",
+      "link": "https://www.molit.go.kr"
+    }
+  },
+  {
+    "id": "dup_local_event",
+    "label": "[중복 예상] 지역행사 재모집 공고",
+    "note": "기존 '2026년 서구 하반기 청년강사 참여자 모집'(광주 서구)과 표현만 다름",
+    "expected": "duplicate",
+    "payload": {
+      "title": "광주 서구 하반기 청년강사 참여자 모집 (마감임박)",
+      "agency": "광주광역시 서구청",
+      "region_names": ["광주광역시 서구"],
+      "life_cycle": ["청년"],
+      "theme_keywords": [],
+      "employment_status": [],
+      "apply_period_type": "마감",
+      "apply_period": "2026-06-01 ~ 2026-06-14",
+      "service_period_type": "확인필요",
+      "service_period": null,
+      "target_text": "광주 서구 거주 청년",
+      "support_text": "강사료 지급",
+      "apply_method": "방문 접수",
+      "link": "https://www.seogu.gwangju.kr"
+    }
+  },
+  {
+    "id": "unique_same_words_diff_region",
+    "label": "[중복 아님] 제목은 비슷한데 지역이 다름",
+    "note": "기존 '청년근로자 교통비 지원사업'(경상북도 고령군)과 제목 겹침 크지만, 다른 도(전라남도)라 regions_overlap=false → 중복후보에서 빠져야 정상",
+    "expected": "unique",
+    "payload": {
+      "title": "2026년 청년근로자 교통비 지원사업",
+      "agency": "전라남도 순천시 일자리경제과",
+      "region_names": ["전라남도 순천시"],
+      "life_cycle": ["청년"],
+      "theme_keywords": [],
+      "employment_status": ["재직자"],
+      "apply_period_type": "상시",
+      "apply_period": null,
+      "service_period_type": "기간한정",
+      "service_period": "2026-01-01 ~ 2026-12-31",
+      "target_text": "순천시 소재 사업장 재직 청년",
+      "support_text": "월 5만원 교통비 지원",
+      "apply_method": "온라인 신청",
+      "link": "https://www.suncheon.go.kr"
+    }
+  },
+  {
+    "id": "unique_common_words_only",
+    "label": "[중복 아님] 흔한 단어만 겹치는 전국 정책",
+    "note": "지역은 전국이라 겹치지만, 제목 핵심 단어가 실제로는 안 겹침(불용어만 공유) → 유사도 낮아야 함",
+    "expected": "unique",
+    "payload": {
+      "title": "국가장학금 2학기 신청 안내",
+      "agency": "한국장학재단",
+      "region_names": ["전국"],
+      "life_cycle": ["청년", "대학생"],
+      "theme_keywords": ["교육", "학자금"],
+      "employment_status": [],
+      "apply_period_type": "특정기간",
+      "apply_period": "2026-08-01 ~ 2026-08-20",
+      "service_period_type": "상시",
+      "service_period": null,
+      "target_text": "대학 재학 중인 소득분위 8구간 이하 학생",
+      "target_income_condition": "소득 8구간 이하",
+      "support_text": "등록금 전액 또는 일부 지원",
+      "apply_method": "한국장학재단 홈페이지",
+      "link": "https://www.kosaf.go.kr"
+    }
+  },
+  {
+    "id": "unique_new_topic",
+    "label": "[중복 아님] 완전히 새로운 정책",
+    "note": "기존 DB에 유사한 제목이 전혀 없는 신규 정책",
+    "expected": "unique",
+    "payload": {
+      "title": "부산 청년 스타트업 인큐베이팅 3기 모집",
+      "agency": "부산창조경제혁신센터",
+      "region_names": ["부산광역시 전체"],
+      "life_cycle": ["청년"],
+      "theme_keywords": ["창업"],
+      "employment_status": ["미취업자"],
+      "apply_period_type": "특정기간",
+      "apply_period": "2026-09-01 ~ 2026-09-30",
+      "service_period_type": "기간한정",
+      "service_period": "2026-10-01 ~ 2027-03-31",
+      "target_text": "만 19~39세 예비창업자",
+      "target_age_min": 19,
+      "target_age_max": 39,
+      "support_text": "사무공간 제공, 창업자금 최대 3천만원",
+      "apply_method": "온라인 접수 후 서류심사",
+      "link": "https://www.bcci.or.kr"
+    }
+  },
+  {
+    "id": "error_missing_title",
+    "label": "[오류] 필수값 누락",
+    "note": "title이 비어 있어 error로 저장 자체가 막혀야 함",
+    "expected": "error",
+    "payload": {
+      "title": "",
+      "agency": "테스트기관",
+      "region_names": ["전국"],
+      "apply_period_type": "확인필요",
+      "service_period_type": "확인필요",
+      "target_text": "",
+      "support_text": ""
+    }
+  },
+  {
+    "id": "error_bad_age_and_enum",
+    "label": "[오류] 나이 역전 + 허용 안 되는 enum",
+    "note": "target_age_min>max는 warning, apply_period_type에 허용 안 된 값을 넣으면 error",
+    "expected": "error",
+    "payload": {
+      "title": "테스트용 잘못된 정책",
+      "agency": "테스트기관",
+      "region_names": ["전국"],
+      "apply_period_type": "연중무휴",
+      "service_period_type": "확인필요",
+      "target_text": "테스트",
+      "target_age_min": 45,
+      "target_age_max": 20,
+      "support_text": "테스트 지원"
+    }
+  },
+  {
+    "id": "warning_only",
+    "label": "[경고만] 저장은 되지만 확인이 필요한 케이스",
+    "note": "link가 http로 시작하지 않음 → warning, error는 없어서 저장은 가능해야 함",
+    "expected": "warning",
+    "payload": {
+      "title": "테스트 워닝 케이스 정책",
+      "agency": "테스트기관",
+      "region_names": ["강원특별자치도 전체"],
+      "life_cycle": ["청년"],
+      "apply_period_type": "확인필요",
+      "service_period_type": "확인필요",
+      "target_text": "강원 거주 청년",
+      "support_text": "월 10만원 지원",
+      "apply_method": "방문 신청",
+      "link": "gangwon.go.kr/youth"
+    }
+  }
+]

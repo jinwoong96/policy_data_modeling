@@ -6,3 +6,4 @@ __pycache__
 __pycache__/
 *.pyc
 admin_test_app/data/manual_policies.json
+policy_data_modeling/data/manual_policies.json

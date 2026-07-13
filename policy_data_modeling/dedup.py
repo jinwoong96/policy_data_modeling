@@ -17,6 +17,20 @@
 import re
 from typing import Any, Dict, List
 
+from schema import COMMON_SCHEMA_FIELDS
+
+# raw(원본 API 응답 전체)는 화면 비교에는 필요 없고 용량만 커서 제외한다.
+DISPLAY_FIELDS = [f for f in COMMON_SCHEMA_FIELDS if f != "raw"]
+
+
+def record_for_display(record: Dict[str, Any]) -> Dict[str, Any]:
+    """비교 화면에 쓸 필드만 뽑아낸다 (raw 제외, 나머지 공통 스키마 필드 전부).
+
+    COMMON_SCHEMA_FIELDS를 그대로 순회하기 때문에, 나중에 schema.py에 필드가
+    추가/삭제되면 이 함수도 자동으로 따라간다 (필드 목록을 여기 따로 하드코딩하지 않음).
+    """
+    return {f: record.get(f) for f in DISPLAY_FIELDS}
+
 
 TITLE_SIMILARITY_THRESHOLD = 0.34
 
@@ -141,6 +155,35 @@ def find_duplicate_candidates(
                             "agency": rec_b.get("agency"),
                         },
                     })
+
+    candidates.sort(key=lambda c: -c["similarity"])
+    return candidates
+
+
+def find_duplicates_for_new(
+    new_record: Dict[str, Any],
+    existing_records: List[Dict[str, Any]],
+    threshold: float = TITLE_SIMILARITY_THRESHOLD,
+) -> List[Dict[str, Any]]:
+    """
+    관리자가 새로 입력한 레코드 1건을 기존 DB 레코드 전체와 비교한다.
+    find_duplicate_candidates()와 같은 기준(지역 겹침 + 제목 유사도)을 쓰되,
+    배치 pairwise가 아니라 '신규 1건 vs 기존 전체' 비교용이다.
+    """
+    candidates = []
+    new_regions = new_record.get("region_names") or []
+    new_title = new_record.get("title", "")
+
+    for existing in existing_records:
+        if not regions_overlap(new_regions, existing.get("region_names")):
+            continue
+
+        sim = title_similarity(new_title, existing.get("title", ""))
+        if sim >= threshold:
+            candidates.append({
+                "similarity": round(sim, 3),
+                "existing": record_for_display(existing),
+            })
 
     candidates.sort(key=lambda c: -c["similarity"])
     return candidates
